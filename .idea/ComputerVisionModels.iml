@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="PYTHON_MODULE" version="4">
+  <component name="NewModuleRootManager">
+    <content url="file://$MODULE_DIR$/../ComputerVisionModels" />
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="module" module-name="pythonProject" />
+    <orderEntry type="module" module-name="pythonProject1" />
+    <orderEntry type="module" module-name="pytorch_resnet_cifar10" />
+    <orderEntry type="module" module-name="pytorch-cifar" />
+  </component>
+</module>

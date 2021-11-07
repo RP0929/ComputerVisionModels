@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/.idea/ComputerVisionModels.iml" filepath="$PROJECT_DIR$/.idea/ComputerVisionModels.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../pythonProject/.idea/pythonProject.iml" filepath="$PROJECT_DIR$/../pythonProject/.idea/pythonProject.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../pythonProject1/.idea/pythonProject1.iml" filepath="$PROJECT_DIR$/../pythonProject1/.idea/pythonProject1.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../pytorch_resnet_cifar10/.idea/pytorch_resnet_cifar10.iml" filepath="$PROJECT_DIR$/../pytorch_resnet_cifar10/.idea/pytorch_resnet_cifar10.iml" />
+    </modules>
+  </component>
+</project>
