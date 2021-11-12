@@ -15,3 +15,5 @@ I have tested the VGG-19 by using the Basic Conv Block on CIFAR-10(32) and the a
 #### 2021.11.12 update the VGG-16 Model (224×224)
 I have tested the VGG-16 by using the Basic Conv Block on CIFAR-10(224) and the accuracy is 90.25%.
 ![image](https://user-images.githubusercontent.com/71971208/141436507-ff69a718-542d-4f19-bb74-73b8c7da4a96.png)
+
+
