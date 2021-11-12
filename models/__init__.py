@@ -1,1 +1,2 @@
-from .resnet import *
+from .ResNet import *
+from .VGG import *

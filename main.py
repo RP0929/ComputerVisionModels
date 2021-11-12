@@ -1,7 +1,12 @@
 '''Train CIFAR10 with PyTorch.'''
 import os
+
+from models.VGG.vgg import VGG16, VGG19
+
 os.environ["CUDA_VISIBLE_DEVICES"] = '0,1'
 # CUDA_VISIBLE_DEVICES=0
+import torch
+import torch.nn as nn
 import torch.optim as optim
 import torch.backends.cudnn as cudnn
 
@@ -9,6 +14,7 @@ import torchvision
 import torchvision.transforms as transforms
 
 import argparse
+from models.VGG import *
 
 from models import *
 from TestFile.utils import progress_bar
@@ -23,8 +29,8 @@ parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')  ###
 #action有store_true->false store_false->true action  原因表示活动，只有在具有触发动作时才显示作用，所以 store_xxx 后面的 xxx
 #（true/false）表示的是触发后的参数值；default 表示默认参数值，可对应不触发 action 时的参数值，所以通常来讲 default=False 和
 #action='store_true' 会成对出现，default=True 和 action='store_false' 会成对出现 ，最终实现既有参数默认功能，又有参数触发切换功能。
-parser.add_argument('--lr',default=0.1,type=float,help='learning rate')
-parser.add_argument('--resume','-r',action='store_true',help = 'resume from checkpoint')
+parser.add_argument('--lr',default=0.00001,type=float,help='learning rate')
+parser.add_argument('--resume',default =True,action='store_true',help = 'resume from checkpoint')
 args = parser.parse_args()
 #after this step:we can use args.lr args.resume
 
@@ -51,34 +57,35 @@ transform_test = transforms.Compose([
 trainset = torchvision.datasets.CIFAR10(
     root='./data',train=True,download=True,transform=transform_train)
 trainloader = torch.utils.data.DataLoader(
-    trainset,batch_size = 128,shuffle=True,num_workers=2
+    trainset,batch_size = 256,shuffle=True,num_workers=2
 )
 
 testset = torchvision.datasets.CIFAR10(
     root='./data',train=False,download=True,transform=transform_test)
 testloader = torch.utils.data.DataLoader(
-    testset,batch_size = 100,shuffle = False,num_workers=2
+    testset,batch_size = 256,shuffle = False,num_workers=2
 )
 
 classes = ('plane','car','bird','cat','deer',
            'dog','frog','horse','ship','truck')
 #Module
-print("==> Building ResNet models..")
+print("==> Building models..")
 
-net = resnet50()
+net = VGG16()
 net = net.to(device)
 if device == 'cuda':
     net = torch.nn.DataParallel(net) #!!!
     cudnn.benchmark = True
-
-if args.resume:
+print(args.resume)
+if args.resume==True:
     #Load checkpoint.
     print('==> Resuming from checkpoint..')
     assert os.path.isdir('checkpoint'),'Error: no checkpoint directory found!'
-    checkpoint = torch.load('./checkpoint/ckpt.pth')
+    checkpoint = torch.load('./checkpoint/ckpt_vgg16_224.pth')
     net.load_state_dict(checkpoint['net'])
     best_acc = checkpoint['acc']
     start_epoch = checkpoint['epoch']
+    print("checkpoint epoch:",start_epoch,"best_acc:",best_acc)
 
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(net.parameters(),lr=args.lr,
@@ -107,6 +114,7 @@ def train(epoch):
 
         progress_bar(batch_idx,len(trainloader),'Loss:%.3f | Acc:%.3f%%(%d/%d)'
                      %(train_loss/(batch_idx+1),100.*correct/total,correct,total))
+
 def test(epoch):
     global best_acc
     net.eval()
@@ -129,8 +137,9 @@ def test(epoch):
     #Save checkpoint.
     acc = 100.*correct/total
     if acc>best_acc:
+        print("test loss:",test_loss)
         print("acc:",acc)
-        print("Saving Module now!")
+        print("Become Best!!! Saving Module now!")
         state = {
             'net':net.state_dict(),
             'acc':acc,
@@ -138,11 +147,14 @@ def test(epoch):
         }
         if not os.path.isdir('checkpoint'):
             os.mkdir('checkpoint')
-        torch.save(state,'./checkpoint/ckpt.pth')
+        torch.save(state,'./checkpoint/ckpt_vgg16_224.pth')
         best_acc = acc
-
+    else:
+        print("loss", test_loss)
+        print("nowacc:",acc)
+        print("Cheer up the bestacc is:",best_acc)
 
 for epoch in range(start_epoch, start_epoch+200):
-    train(epoch)
+    train(epoch+1)
     test(epoch)
     scheduler.step()

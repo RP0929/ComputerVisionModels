@@ -10,6 +10,14 @@
           </mappings>
         </serverdata>
       </paths>
+      <paths name="user_2@116.62.200.72:37084 password (1)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/home/data/mrp_data/ComputerVisionModels" local="$PROJECT_DIR$" />
+            <mapping local="" />
+          </mappings>
+        </serverdata>
+      </paths>
     </serverData>
     <option name="myAutoUpload" value="ALWAYS" />
   </component>
