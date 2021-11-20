@@ -1,7 +1,12 @@
 import torch
 import torchvision.models
+from models.VGG.vgg import VGG16, VGG19
 
-resnet18 = torchvision.models.resnet18(pretrained=False)
-resnet18.load_state_dict(torch.load("./checkpoint/ckpt1.pth"))
+
+checkpoint = torch.load('../checkpoint/ckpt_vgg19.pth')
+model = checkpoint['net']
+acc = checkpoint['acc']
+epoch = checkpoint['epoch']
+print("acc:",acc,"epoch:",epoch)
 # model = torch.load('./checkpoint/ckpt1.pth')
-print(resnet18)
+print(model)

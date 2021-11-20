@@ -35,8 +35,8 @@ class VGG(nn.Module):
         self.block4 = self.make_layers(num_blocks[3],256,512)
         self.block5 = self.make_layers(num_blocks[4],512,512)
         self.maxpool = nn.MaxPool2d(kernel_size=2)
-        self.linear1 = nn.Linear(25088,512)
-        self.linear2 = nn.Linear(512,num_class)
+        self.linear1 = nn.Linear(512,10)
+        #self.linear2 = nn.Linear(256,num_class)
     def make_layers(self,layer_nums,in_planes,planes):
         return BasicBlock(layer_nums,in_planes,planes)
     def forward(self,x):
@@ -65,13 +65,13 @@ class VGG(nn.Module):
         out = out.view(out.size(0),-1)
         #print('1',out.size())
         #print("flatten:",out.shape)
-        out = F.relu(self.linear1(out))
-        out = self.linear2(out)
+        out = self.linear1(out)
+        # out = self.linear2(out)
         return out
 
 def test():
-    x = torch.randn(64,3,224,224)
-    net = VGG19()
+    x = torch.randn(64,3,32,32)
+    net = VGG16()
     out = net(x)
     print(out.shape)
 

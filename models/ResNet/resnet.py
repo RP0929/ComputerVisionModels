@@ -73,15 +73,16 @@ class ResNet(nn.Module):
         # num_blocks means how many layers in each block
         # num_class is the output results.It's 10 on CIFAR10
         self.inplanes = 64
-        self.layer1 = nn.Conv2d(3,64,kernel_size=7,stride=2,padding=3)
+        self.layer1 = nn.Conv2d(3,64,kernel_size=3,stride=1,padding=1)
         self.bn1 = nn.BatchNorm2d(64)
-        self.maxpooling = nn.MaxPool2d(3,2,padding=1)
+        # self.maxpooling = nn.MaxPool2d(3,2,padding=1)
         #max pooling layer don't need write in init because it's not the params layer
         self.layer2 = self._make_layer(block,64,num_blocks[0],stride=1)#before conv we use stride=2 maxpooling
         self.layer3 = self._make_layer(block,128,num_blocks[1],stride=2)
         self.layer4 = self._make_layer(block,256,num_blocks[2],stride=2)
         self.layer5 = self._make_layer(block,512,num_blocks[3],stride=2)#I think may be 1 or 2 all can but false
         #Avg pooling layer don't need write in init because it's not the params layer
+        self.avgpooling = nn.AvgPool2d(kernel_size=4)##    看哪个好
         self.linear = nn.Linear(512*block.expansion,num_class)
     pass
  #_make_layer:block,planes,num_blocks,stride
@@ -97,13 +98,17 @@ class ResNet(nn.Module):
  # init param:block,num_blocks,num_classes
     def forward(self,x):
         out = F.relu(self.bn1(self.layer1(x)))
-        out = self.maxpooling(out)
+        #out = self.maxpooling(out)
         out = self.layer2(out)
         out = self.layer3(out)
         out = self.layer4(out)
         out = self.layer5(out)
-        out = F.avg_pool2d(out,4)
+        #print(out.size())
+        #out = F.avg_pool2d(out,kernel_size=3,padding=1,stride=1)
+        #print(out.size())
+        out = self.avgpooling(out)
         out = out.view(out.size(0),-1)
+        #print(out.size())
         out = self.linear(out)
         return out
  #forward
@@ -111,8 +116,10 @@ class ResNet(nn.Module):
 def resnet18():
     net = ResNet(BasicBlock,[2,2,2,2])
     return net
+
+
 def testBasicResNet():
-    x = torch.randn(1, 3, 224, 224)
+    x = torch.randn(256, 3, 32 , 32)
     net = resnet18()
     out = net(x)
     return out
@@ -129,5 +136,5 @@ def testBottleneck():
     out = net(x)
     return out
 
-net = testBottleneck()
+net = testBasicResNet()
 print(net.size())

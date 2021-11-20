@@ -1,4 +1,6 @@
-'''Train CIFAR10 with PyTorch.'''
+'''
+Train CIFAR10 with PyTorch with TensorBoard.
+'''
 import os
 
 from models.VGG.vgg import VGG16, VGG19
@@ -12,7 +14,7 @@ import torch.backends.cudnn as cudnn
 
 import torchvision
 import torchvision.transforms as transforms
-
+from torch.utils.tensorboard import SummaryWriter
 import argparse
 from models.VGG import *
 from models.ResNet.resnet import *
@@ -20,25 +22,19 @@ from models.ResNet.resnet import *
 from models import *
 from TestFile.utils import progress_bar
 
+writer = SummaryWriter()
+
 #创建对象
 parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')  ###
-#可以通过add_argument来进行参数的设置
-#nargs表示使用参数的取值，+表示至少有一个参数，？就是0个或1个，*表示0个或所有
-#type表示传入参数类型，有str,float,int类型
-#default表示当你没有使用这个值的时候就使用默认值
-#help是用来完成帮助信息
-#action有store_true->false store_false->true action  原因表示活动，只有在具有触发动作时才显示作用，所以 store_xxx 后面的 xxx
-#（true/false）表示的是触发后的参数值；default 表示默认参数值，可对应不触发 action 时的参数值，所以通常来讲 default=False 和
-#action='store_true' 会成对出现，default=True 和 action='store_false' 会成对出现 ，最终实现既有参数默认功能，又有参数触发切换功能。
 parser.add_argument('--lr',default=0.1,type=float,help='learning rate')
-parser.add_argument('--resume',default =False,action='store_true',help = 'resume from checkpoint')
+parser.add_argument('--resume',default =False,action='store_true',help = 'resume from checkpoint',)
 args = parser.parse_args()
-#after this step:we can use args.lr args.resume
 
 device = 'cuda'
 best_acc = 0
 start_epoch = 0
-
+total_train_step = 0
+total_test_step = 0
 #Data
 print('==>Preparing CIFAR 10 data...')
 transform_train = transforms.Compose([
@@ -75,6 +71,7 @@ print("==> Building models..")
 net = resnet18()
 
 net = net.to(device)
+
 if device == 'cuda':
     net = torch.nn.DataParallel(net) #!!!
     cudnn.benchmark = True
@@ -92,12 +89,15 @@ if args.resume==True:
     print("checkpoint epoch:",start_epoch,"best_acc:",best_acc)
 
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(net.parameters(),lr=args.lr,
-                      momentum=0.9,weight_decay=5e-4)
-scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer,T_0=20,T_mult=2)
+#为了防止过拟合，在原本损失函数的基础上，加上L2正则化，而weight_decay就是这个正则化的lambda参数，一般设置为1e-8，所以调参的时候调整是否使用权重衰退即可。
+#optimizer = optim.SGD(net.parameters(),lr=args.lr,momentum=0.9,weight_decay=1e-4)
+#optimizer = optim.Adam(net.parameters(),args.lr,(0.9, 0.999),weight_decay=1e-4)
+optimizer = optim.SGD(net.parameters(),lr=args.lr,momentum=0.9)
+scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer,25,2)
 
 #Training
 def train(epoch):
+    global total_train_step
     print('\nEpoch: %d'% epoch)
     net.train()
     train_loss = 0
@@ -110,6 +110,10 @@ def train(epoch):
         loss = criterion(outputs,targets)
         loss.backward()
         optimizer.step()
+        #TB
+        if total_train_step%1000 == 0:
+            writer.add_scalar("train_loss",loss.item(),total_train_step)
+        total_train_step = total_train_step + 1
 
         train_loss += loss.item()
         _,predicted = outputs.max(1)
@@ -120,7 +124,7 @@ def train(epoch):
                      %(train_loss/(batch_idx+1),100.*correct/total,correct,total))
 
 def test(epoch):
-    global best_acc
+    global best_acc,total_test_step
     net.eval()
     test_loss = 0
     correct = 0
@@ -132,6 +136,7 @@ def test(epoch):
             loss = criterion(outputs,targets)
 
             test_loss += loss.item()
+
             _,predicted = outputs.max(1)
             total += targets.size(0)
             correct += predicted.eq(targets).sum().item()
@@ -140,8 +145,9 @@ def test(epoch):
                          %(test_loss/(batch_idx+1),100.*correct/total,correct,total))
     #Save checkpoint.
     acc = 100.*correct/total
+    writer.add_scalar("test_acc", acc, total_test_step)
+    total_test_step += 1
     if acc>best_acc:
-        print("test loss:",test_loss)
         print("acc:",acc)
         print("Become Best!!! Saving Module now!")
         state = {
@@ -159,6 +165,7 @@ def test(epoch):
         print("Cheer up the bestacc is:",best_acc)
 
 for epoch in range(start_epoch, start_epoch+200):
-    train(epoch+1)
+    train(epoch)
     test(epoch)
     scheduler.step()
+writer.close()
