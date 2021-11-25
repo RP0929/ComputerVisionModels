@@ -108,8 +108,8 @@ class ResNet(nn.Module):
         #print(out.size())
         out = self.avgpooling(out)
         out = out.view(out.size(0),-1)
-        #print(out.size())
         out = self.linear(out)
+        #print(out.size())
         return out
  #forward
 
@@ -136,5 +136,5 @@ def testBottleneck():
     out = net(x)
     return out
 
-net = testBasicResNet()
-print(net.size())
+# net = testBasicResNet()
+# print(net.size())

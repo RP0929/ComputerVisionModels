@@ -7,6 +7,5 @@
     <orderEntry type="module" module-name="pythonProject1" />
     <orderEntry type="module" module-name="pytorch_resnet_cifar10" />
     <orderEntry type="module" module-name="pytorch-cifar" />
-    <orderEntry type="module" module-name="pytorch-cifar10" />
   </component>
 </module>

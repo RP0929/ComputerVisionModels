@@ -50,7 +50,6 @@ transform_train = transforms.Compose([
 ])
 
 transform_test = transforms.Compose([
-    transforms.Resize(32),
     transforms.ToTensor(),
     transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
 ])
@@ -58,13 +57,13 @@ transform_test = transforms.Compose([
 trainset = torchvision.datasets.CIFAR10(
     root='./data',train=True,download=True,transform=transform_train)
 trainloader = torch.utils.data.DataLoader(
-    trainset,batch_size = 256,shuffle=True,num_workers=2
+    trainset,batch_size = 128,shuffle=True,num_workers=2
 )
 
 testset = torchvision.datasets.CIFAR10(
     root='./data',train=False,download=True,transform=transform_test)
 testloader = torch.utils.data.DataLoader(
-    testset,batch_size = 256,shuffle = False,num_workers=2
+    testset,batch_size = 128,shuffle = False,num_workers=2
 )
 
 classes = ('plane','car','bird','cat','deer',
@@ -85,16 +84,15 @@ if args.resume==True:
     #Load checkpoint.
     print('==> Resuming from checkpoint..')
     assert os.path.isdir('checkpoint'),'Error: no checkpoint directory found!'
-    checkpoint = torch.load('./checkpoint/ckpt_resnet18_1.pth')
+    checkpoint = torch.load('./checkpoint/ckpt_resnet18_avgk_2.pth')
     net.load_state_dict(checkpoint['net'])
     best_acc = checkpoint['acc']
     start_epoch = checkpoint['epoch']
     print("checkpoint epoch:",start_epoch,"best_acc:",best_acc)
 
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(net.parameters(),lr=args.lr,
-                      momentum=0.9,weight_decay=5e-4)
-scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer,T_0=20,T_mult=2)
+optimizer = optim.SGD(net.parameters(),lr=args.lr,momentum=0.9)
+scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer,T_max=25)
 
 #Training
 def train(epoch):
@@ -151,7 +149,7 @@ def test(epoch):
         }
         if not os.path.isdir('checkpoint'):
             os.mkdir('checkpoint')
-        torch.save(state,'./checkpoint/ckpt_resnet18_1.pth')
+        torch.save(state,'./checkpoint/ckpt_resnet18_avgk_2.pth')
         best_acc = acc
     else:
         print("loss", test_loss)
