@@ -3,7 +3,7 @@ import os
 
 from models.VGG.vgg import VGG16, VGG19
 
-os.environ["CUDA_VISIBLE_DEVICES"] = '0,1'
+os.environ["CUDA_VISIBLE_DEVICES"] = '0,1,2,3'
 # CUDA_VISIBLE_DEVICES=0
 import torch
 import torch.nn as nn
@@ -84,7 +84,7 @@ if args.resume==True:
     #Load checkpoint.
     print('==> Resuming from checkpoint..')
     assert os.path.isdir('checkpoint'),'Error: no checkpoint directory found!'
-    checkpoint = torch.load('./checkpoint/ckpt_resnet18_avgk_2.pth')
+    checkpoint = torch.load('./checkpoint/ckpt_resnet18.pth')
     net.load_state_dict(checkpoint['net'])
     best_acc = checkpoint['acc']
     start_epoch = checkpoint['epoch']

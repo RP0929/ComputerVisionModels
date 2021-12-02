@@ -1,6 +1,7 @@
 import os
 
 import torchvision.datasets
+from matplotlib.pyplot import imshow
 from torch.utils.tensorboard import SummaryWriter
 os.environ["CUDA_VISIBLE_DEVICES"] = '2,3'
 import torch
@@ -12,12 +13,13 @@ from models.ResNet.resnet import *
 ## cudnn???
 import torch.backends.cudnn as cudnn
 
+
 device = 'cuda'
 epsilons = [0,1/256,2/256,3/256,4/256,5/256,6/256,7/256,8/256,9/256,10/256,11/256,12/256,13/256,14/256,15/256,16/256]
 pretranined_model = './checkpoint/ckpt_resnet18_NoNorm_test.pth'
 use_cuda = True
 checkpoint = torch.load(pretranined_model)
-writer = SummaryWriter('./adv/adversarial_samples_FGSM_BatchSize/')
+writer = SummaryWriter('./adv/adversarial_samples_PGD_BatchSize/')
 print('==>Preparing CIFAR 10 data...')
 #transform
 
@@ -51,75 +53,55 @@ model.eval()
 #epsilon is the pixel-wise perturbation amount (epsilonϵ)
 #data_grad is gradient of the loss w.r.t the input image
 
-#FGSM attack code
-def fgsm_attack(image,epsilon,data_grad):
-    # Collect the element-wise sign of the data gradient
-    sign_data_grad = data_grad.sign()
-    # Create the perturbed image by adjusting each pixel of the input image
-    perturbed_image = image + epsilon*sign_data_grad
-    # Adding clipping to maintain [0,1] range
-    if epsilon !=0 :
-        perturbed_image = torch.clamp(perturbed_image,0,1)
-    return perturbed_image
+#PGD attack
+def pgd_attack(model,images,labels,eps=0.3,alpha=2/255,iters=40):
+    images = images.to(device)
+    labels = labels.to(device)
+    loss = nn.CrossEntropyLoss()
+    ori_images = images.data
+    for i in range(iters):
+        images.requires_grad = True
+        outputs = model(images)
+        model.zero_grad()
+        cost = loss(outputs,labels).to(device)
+        cost.backward()
+
+        adv_images = images + alpha*images.grad.sign()
+        eta = torch.clamp(adv_images-ori_images,min=-eps,max=eps)
+        images = torch.clamp(ori_images+eta,min=0,max=1).detach_()
+    return images
 
 def test(model,device,test_loader,epsilon):
     # Accuracy counter
     correct = 0
     total = 0
     global epoch,image_num
-    image_step = 0
     epoch += 1
     #Loop over all examples in test set
     for batch_idx,(data,target) in enumerate(test_loader):
-        # Send the data and label to the device
-        data,target = data.to(device),target.to(device)
-        # Set requires_grad attribute of tensor. This is important for Attack
-        data.requires_grad = True
-        # Forward pass the data through the model
-
-        total += target.size(0)
-
-        outputs = model(data)
-        init_pred = outputs.max(1,keepdim=True)[1]
-        loss = F.nll_loss(outputs, target)
-
-        # Zero all existing gradients
-        model.zero_grad()
-
-        # Calculate gradients of model in backward pass
-        loss.backward()
-        #print("init_pred size",init_pred.squeeze(1).size(),init_pred.squeeze(1))
-        #print("target size",target.size(),target)
-        #print("total size",torch.eq(init_pred.squeeze(1),target).size(),torch.eq(init_pred.squeeze(1),target))
-
-        #print(batch_idx,":",torch.eq(init_pred.squeeze(1),target).sum().item())
-        #if the initial prediction is wrong,dont bother attacking,just move on
-        if torch.eq(init_pred,target).sum().item()==0 :
-            continue
-
-        #Caculate datagrad
-        data_grad = data.grad.data
-
         #Call FGSM Attack
-        perturbed_data = fgsm_attack(data,epsilon,data_grad)
+        perturbed_data = pgd_attack(model,data,target,alpha=epsilon)
+        target = target.to(device)
+        total+= target.size(0)
+        if batch_idx % 30 == 0 :
+            print("epsilon:",epsilon,"batch_idx",batch_idx)
         if batch_idx==9:
-            print("adding now!")
+            print("adding ori and adv Images now!")
             writer.add_images("Origanel",data,epoch)
             writer.add_images("Adv Image",perturbed_data,epoch)
-
 
         outputs = model(perturbed_data)
         # Calculate the loss
 
         # Check for success
-        final_pred = outputs.max(1, keepdim=True)[1]
+        _,final_pred = outputs.max(1, keepdim=True)
         #if final_pred.item() == target.item():
             #correct += 1
             #Special case for saving 0 epsilon examples
 
 
         correct += torch.eq(final_pred.squeeze(1),target).sum().item()
-
+        #imshow(torchvision.utils.make_grid(perturbed_data.cpu().data,normalize=True))
     #Calculate final accuracy for this epsilon
     final_acc = 100.*correct/total
     writer.add_scalar("Attack Acc:",final_acc,epoch)
