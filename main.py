@@ -92,7 +92,7 @@ if args.resume==True:
 
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(net.parameters(),lr=args.lr,momentum=0.9)
-scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer,T_max=25)
+scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer,T_max=50)
 
 #Training
 def train(epoch):
